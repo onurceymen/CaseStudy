@@ -1,0 +1,31 @@
+﻿@model IEnumerable<CaseStudyMVC.Models.OrderViewModel>
+
+@{
+    ViewData["Title"] = "My Orders";
+}
+
+<h2>My Orders</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Order Code</th>
+            <th>Address</th>
+            <th>Created At</th>
+            <th>Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var order in Model)
+        {
+            <tr>
+                <td>@order.OrderCode</td>
+                <td>@order.Address</td>
+                <td>@order.CreatedAt.ToString("g")</td>
+                <td>
+                    <a href="@Url.Action("Details", "Order", new { orderId = order.Id })" class="btn btn-info">View Details</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

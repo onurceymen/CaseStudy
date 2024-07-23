@@ -1,0 +1,34 @@
+﻿@model CaseStudyMVC.Models.OrderViewModel
+
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+<h2>Order Details</h2>
+
+<div class="order-details">
+    <p><strong>Order Code:</strong> @Model.OrderCode</p>
+    <p><strong>Address:</strong> @Model.Address</p>
+    <p><strong>Created At:</strong> @Model.CreatedAt.ToString("g")</p>
+    <h3>Items</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Product Name</th>
+                <th>Unit Price</th>
+                <th>Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@item.ProductName</td>
+                    <td>@item.UnitPrice</td>
+                    <td>@item.Quantity</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+<a href="@Url.Action("Index", "Order")" class="btn btn-secondary">Back to Orders</a>
