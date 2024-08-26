@@ -1,13 +1,17 @@
 ﻿using CaseStudyAPI.ServicesAbstract;
 using CaseStudyBusiness.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
+using System.Security.Claims;
+using System;
 using System.Threading.Tasks;
+using CaseStudyData.Constants;
 
 namespace CaseStudyAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -17,12 +21,24 @@ namespace CaseStudyAPI.Controllers
             _orderService = orderService;
         }
 
+        private int GetUserIdFromToken()
+        {
+            return int.Parse(User.FindFirst("UserId")?.Value);
+        }
+
+        private string GetUserRoleFromToken()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value;
+        }
+
         [HttpPost]
-        public async Task<IActionResult> CreateOrder(OrderDto orderDto)
+        [Authorize(Roles = Roles.Buyer)]
+        public async Task<IActionResult> CreateOrder([FromBody] OrderCreateDto orderDto)
         {
             try
             {
-                await _orderService.CreateOrderAsync(orderDto);
+                var userId = GetUserIdFromToken();
+                await _orderService.CreateOrderAsync(orderDto, userId);
                 return Ok("Sipariş başarıyla oluşturuldu.");
             }
             catch (Exception ex)
@@ -32,7 +48,8 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("{userId}")]
-        public async Task<IActionResult> GetOrdersByUserId(string userId)
+        [Authorize(Roles = Roles.Buyer + "," + Roles.Admin)]
+        public async Task<IActionResult> GetOrdersByUserId(int userId)
         {
             try
             {
@@ -46,6 +63,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("details/{orderId}")]
+        [Authorize(Roles = Roles.Buyer + "," + Roles.Seller + "," + Roles.Admin)]
         public async Task<IActionResult> GetOrderDetails(int orderId)
         {
             try
@@ -64,6 +82,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpDelete("{orderId}")]
+        [Authorize(Roles = Roles.Buyer + "," + Roles.Admin)]
         public async Task<IActionResult> CancelOrder(int orderId)
         {
             try

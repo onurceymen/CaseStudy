@@ -1,4 +1,6 @@
 ﻿using CaseStudyBusiness.Dtos;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace CaseStudyAPI.ServicesAbstract
 {
@@ -6,12 +8,17 @@ namespace CaseStudyAPI.ServicesAbstract
     {
         Task<IEnumerable<UserDto>> GetAllUsersAsync();
         Task<UserDto> GetUserByEmailAsync(string email);
-        Task ActivateUserAsync(string userId);
-        Task DeactivateUserAsync(string userId);
-        Task ApproveSellerRequestAsync(string userId);
-        Task RegisterUserAsync(UserDto user, string password);
-        Task<UserDto> AuthenticateUserAsync(string email, string password);
-        Task UpdateUserByEmailAsync(string email, UserDto updatedUser);
-        Task ChangeUserRoleAsync(string userId, string newRoleId);
+        Task ActivateUserAsync(int userId);
+        Task DeactivateUserAsync(int userId);
+        Task ApproveSellerRequestAsync(int userId);
+        Task RegisterUserAsync(UserCreateDto userCreateDto);
+        Task<UserLoginResponseDto> AuthenticateUserAsync(UserLoginDto userLoginDto);
+        Task UpdateUserByEmailAsync(string email, UserUpdateDto updatedUser);
+        Task ChangeUserRoleAsync(int userId, int newRoleId);
+
+
+
+
+
     }
 }

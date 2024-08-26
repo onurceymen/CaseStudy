@@ -18,7 +18,7 @@ namespace CaseStudyAPI.Services
             _cartItemRepository = cartItemRepository;
         }
 
-        public async Task<IEnumerable<CartItemDto>> GetCartItemsByUserIdAsync(string userId)
+        public async Task<IEnumerable<CartItemDto>> GetCartItemsByUserIdAsync(int userId)
         {
             try
             {
@@ -89,7 +89,7 @@ namespace CaseStudyAPI.Services
             }
         }
 
-        public async Task<CartItemDto> GetCartItemByUserAndProductIdAsync(string userId, int productId)
+        public async Task<CartItemDto> GetCartItemByUserAndProductIdAsync(int userId, int productId)
         {
             try
             {

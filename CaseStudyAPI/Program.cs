@@ -1,49 +1,100 @@
-using CaseStudyAPI.Properties;
 using CaseStudyAPI.Services;
 using CaseStudyAPI.ServicesAbstract;
 using CaseStudyBusiness.Abstract;
 using CaseStudyBusiness.Concreate;
+using CaseStudyBusiness.Concrete;
+using CaseStudyBusiness.Mapping;
 using CaseStudyData.Context;
 using CaseStudyData.Repository;
-using CaseStudyEntity.Entity;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-// Database context configuration
+// Database Context ekleniyor
 var connectionString = builder.Configuration.GetConnectionString("CaseStudyDbContext");
 builder.Services.AddDbContext<CaseStudyDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Identity configuration
-builder.Services.AddIdentity<User, IdentityRole>()
-    .AddEntityFrameworkStores<CaseStudyDbContext>()
-    .AddDefaultTokenProviders();
+// JWT ayarlarý ekleniyor
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]))
+    };
+});
 
-// Repositories
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
+// Dependency Injection
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>(); // User repository eklemeyi unutmayýn
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
-// Services
-builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICartService, CartService>();
-builder.Services.AddScoped<IUserService, UserService>(); // User service eklemeyi unutmayýn
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
-// Add controllers
+// AutoMapper ekleniyor
+builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+
+// Swagger ekleniyor
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "CaseStudyAPI",
+        Version = "v1"
+    });
+
+    // JWT için Swagger ayarlarý
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme (Example: 'Bearer 12345abcdef')",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement{
+    {
+        new OpenApiSecurityScheme
+        {
+            Reference = new OpenApiReference
+            {
+                Type = ReferenceType.SecurityScheme,
+                Id = "Bearer"
+            }
+        },
+        new string[] {}
+    }});
+});
+
+// Controller'lar ekleniyor
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 
-// CORS configuration
+// CORS ayarlarý
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -55,16 +106,17 @@ builder.Services.AddCors(options =>
         });
 });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore-swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "CaseStudyAPI", Version = "v1" });
-});
-
+// Build methodunu en sona taþýyýn
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Seed data iþlemleri
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await SeedData.Initialize(services);
+}
+
+// Uygulama yapýlandýrmasý
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -76,16 +128,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll"); // Enable CORS
+app.UseCors("AllowAll");
 
-app.UseAuthentication(); // Add authentication
+app.UseAuthentication();
 app.UseAuthorization();
-
-// Global exception handling middleware
-// app.UseMiddleware<ExceptionHandlingMiddleware>(); // Eðer özel bir middleware'iniz varsa ekleyin
 
 app.MapControllers();
 
-await SeedData.Initialize(app.Services);
-
-app.Run();
+await app.RunAsync();

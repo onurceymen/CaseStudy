@@ -7,7 +7,7 @@ using CaseStudyEntity.Entity;
 
 namespace CaseStudyData.Repository
 {
-    public class ProductRepository : Repository<Product>, IProductRepository
+    public class ProductRepository : GenericRepository<Product>, IProductRepository
     {
         private readonly CaseStudyDbContext _context;
 
@@ -16,7 +16,7 @@ namespace CaseStudyData.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<Product>> GetProductsBySellerIdAsync(string sellerId)
+        public async Task<IEnumerable<Product>> GetProductsBySellerIdAsync(int sellerId)
         {
             return await _context.Products
                 .Where(p => p.SellerId == sellerId)

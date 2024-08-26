@@ -1,12 +1,7 @@
 ﻿using CaseStudyAPI.ServicesAbstract;
-using CaseStudyBusiness.Abstract;
 using CaseStudyBusiness.Dtos;
 using CaseStudyData.Repository;
 using CaseStudyEntity.Entity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CaseStudyAPI.Services
 {
@@ -19,20 +14,20 @@ namespace CaseStudyAPI.Services
             _productRepository = productRepository;
         }
 
-        public async Task AddProductAsync(ProductDto productDto)
+        public async Task AddProductAsync(ProductCreateDto productDto, int sellerId)
         {
             try
             {
                 var product = new Product
                 {
-                    SellerId = productDto.SellerId,
+                    SellerId = sellerId,
                     CategoryId = productDto.CategoryId,
                     Name = productDto.Name,
                     Price = productDto.Price,
                     Details = productDto.Details,
                     StockAmount = productDto.StockAmount,
                     CreatedAt = DateTime.Now,
-                    Enabled = productDto.Enabled
+                    Enabled = true
                 };
 
                 await _productRepository.AddAsync(product);
@@ -43,7 +38,7 @@ namespace CaseStudyAPI.Services
             }
         }
 
-        public async Task<IEnumerable<ProductDto>> GetProductsBySellerIdAsync(string sellerId)
+        public async Task<IEnumerable<ProductDto>> GetProductsBySellerIdAsync(int sellerId)
         {
             try
             {
@@ -180,17 +175,17 @@ namespace CaseStudyAPI.Services
             }
         }
 
-        public async Task AddProductCommentAsync(ProductCommentDto commentDto)
+        public async Task AddProductCommentAsync(CreateProductCommentDto commentDto, int userId)
         {
             try
             {
                 var comment = new ProductComment
                 {
                     ProductId = commentDto.ProductId,
-                    UserId = commentDto.UserId,
+                    UserId = userId,
                     Text = commentDto.Text,
                     StarCount = commentDto.StarCount,
-                    IsConfirmed = commentDto.IsConfirmed,
+                    IsConfirmed = false,
                     CreatedAt = DateTime.Now
                 };
 
@@ -235,5 +230,7 @@ namespace CaseStudyAPI.Services
                 throw new Exception("Ürün yorumları filtrelenirken bir hata oluştu: " + ex.Message);
             }
         }
+
+       
     }
 }

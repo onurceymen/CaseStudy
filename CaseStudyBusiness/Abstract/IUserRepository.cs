@@ -1,18 +1,18 @@
 ﻿using CaseStudyData.Repository;
 using CaseStudyEntity.Entity;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CaseStudyBusiness.Abstract
 {
-    public interface IUserRepository : IRepository<User>
+    public interface IUserRepository : IGenericRepository<User>
     {
-        Task ActivateUserAsync(string userId);
-        Task DeactivateUserAsync(string userId);
-        Task ApproveSellerRequestAsync(string userId);
+        Task ActivateUserAsync(int userId);
+        Task DeactivateUserAsync(int userId);
+        Task ApproveSellerRequestAsync(int userId);
         Task<IEnumerable<User>> GetAllUsersAsync();
         Task<User> GetUserByEmailAsync(string email);
-        Task ChangeUserRoleAsync(string userId, string newRoleId);
+        Task ChangeUserRoleAsync(int userId, int newRoleId);
+        Task UpdateAsync(User user);
+        Task<bool> CreateUserAsync(User user);
 
     }
 }

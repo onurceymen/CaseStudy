@@ -1,13 +1,15 @@
 ﻿using CaseStudyAPI.ServicesAbstract;
 using CaseStudyBusiness.Dtos;
+using CaseStudyData.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace CaseStudyAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;
@@ -17,12 +19,29 @@ namespace CaseStudyAPI.Controllers
             _productService = productService;
         }
 
+        private int GetSellerIdFromToken()
+        {
+            return int.Parse(User.FindFirst("SellerId")?.Value);
+        }
+
+        private int GetUserIdFromToken()
+        {
+            return int.Parse(User.FindFirst("UserId")?.Value);
+        }
+
+        private string GetUserRoleFromToken()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value;
+        }
+
         [HttpPost]
-        public async Task<IActionResult> AddProduct(ProductDto productDto)
+        [Authorize(Roles = Roles.Seller)]
+        public async Task<IActionResult> AddProduct([FromBody] ProductCreateDto productDto)
         {
             try
             {
-                await _productService.AddProductAsync(productDto);
+                var sellerId = GetSellerIdFromToken();
+                await _productService.AddProductAsync(productDto, sellerId);
                 return Ok("Ürün başarıyla eklendi.");
             }
             catch (Exception ex)
@@ -31,8 +50,9 @@ namespace CaseStudyAPI.Controllers
             }
         }
 
-        [HttpGet("{sellerId}")]
-        public async Task<IActionResult> GetProductsBySellerId(string sellerId)
+        [HttpGet("{sellerId:int}")]
+        [Authorize(Roles = Roles.Seller)]
+        public async Task<IActionResult> GetProductsBySellerId(int sellerId)
         {
             try
             {
@@ -45,7 +65,8 @@ namespace CaseStudyAPI.Controllers
             }
         }
 
-        [HttpPut("price/{productId}")]
+        [HttpPut("price/{productId:int}")]
+        [Authorize(Roles = Roles.Seller)]
         public async Task<IActionResult> UpdateProductPrice(int productId, decimal newPrice)
         {
             try
@@ -59,7 +80,8 @@ namespace CaseStudyAPI.Controllers
             }
         }
 
-        [HttpPut("stock/{productId}")]
+        [HttpPut("stock/{productId:int}")]
+        [Authorize(Roles = Roles.Seller)]
         public async Task<IActionResult> UpdateProductStock(int productId, byte newStock)
         {
             try
@@ -73,7 +95,8 @@ namespace CaseStudyAPI.Controllers
             }
         }
 
-        [HttpGet("details/{productId}")]
+        [HttpGet("details/{productId:int}")]
+        [Authorize(Roles = Roles.Buyer + "," + Roles.Seller)]
         public async Task<IActionResult> GetProductDetails(int productId)
         {
             try
@@ -92,6 +115,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("search/{searchTerm}")]
+        [Authorize(Roles = Roles.Buyer + "," + Roles.Seller)]
         public async Task<IActionResult> SearchProducts(string searchTerm)
         {
             try
@@ -106,6 +130,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("filter")]
+        [Authorize(Roles = Roles.Buyer + "," + Roles.Seller)]
         public async Task<IActionResult> FilterProducts(string category, decimal minPrice, decimal maxPrice)
         {
             try
@@ -119,7 +144,8 @@ namespace CaseStudyAPI.Controllers
             }
         }
 
-        [HttpPut("deactivate/{productId}")]
+        [HttpPut("deactivate/{productId:int}")]
+        [Authorize(Roles = Roles.Seller)]
         public async Task<IActionResult> DeactivateProduct(int productId)
         {
             try
@@ -134,11 +160,13 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpPost("comment")]
-        public async Task<IActionResult> AddProductComment(ProductCommentDto commentDto)
+        [Authorize(Roles = Roles.Buyer)]
+        public async Task<IActionResult> AddProductComment([FromBody] CreateProductCommentDto commentDto)
         {
             try
             {
-                await _productService.AddProductCommentAsync(commentDto);
+                var userId = GetUserIdFromToken();
+                await _productService.AddProductCommentAsync(commentDto, userId);
                 return Ok("Ürün yorumu başarıyla eklendi.");
             }
             catch (Exception ex)
@@ -147,7 +175,8 @@ namespace CaseStudyAPI.Controllers
             }
         }
 
-        [HttpPut("approve/{commentId}")]
+        [HttpPut("approve/{commentId:int}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> ApproveProductComment(int commentId)
         {
             try
@@ -162,6 +191,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("comments")]
+        [Authorize(Roles = Roles.Admin + "," + Roles.Seller)]
         public async Task<IActionResult> FilterProductComments(int productId, int starCount, bool? isConfirmed)
         {
             try

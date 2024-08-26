@@ -1,191 +1,148 @@
-﻿using CaseStudyAPI.ServicesAbstract;
+﻿using AutoMapper;
+using CaseStudyAPI.ServicesAbstract;
 using CaseStudyBusiness.Abstract;
 using CaseStudyBusiness.Dtos;
 using CaseStudyEntity.Entity;
-using Microsoft.AspNetCore.Identity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using System.Security.Cryptography;
 
 namespace CaseStudyAPI.Services
 {
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
-        private readonly UserManager<User> _userManager;
+        private readonly IConfiguration _configuration;
+        private readonly IMapper _mapper;
+        private readonly JwtService _jwtService;
 
-        public UserService(IUserRepository userRepository, UserManager<User> userManager)
+        public UserService(IUserRepository userRepository, IConfiguration configuration, IMapper mapper, JwtService jwtService)
         {
             _userRepository = userRepository;
-            _userManager = userManager;
+            _configuration = configuration;
+            _mapper = mapper;
+            _jwtService = jwtService;
         }
 
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
-            try
-            {
-                var users = await _userRepository.GetAllUsersAsync();
-                return users.Select(u => new UserDto
-                {
-                    
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    Email = u.Email,
-                   
-                }).ToList();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Kullanıcılar getirilirken bir hata oluştu: " + ex.Message);
-            }
+            var users = await _userRepository.GetAllUsersAsync();
+            return _mapper.Map<IEnumerable<UserDto>>(users);
         }
 
         public async Task<UserDto> GetUserByEmailAsync(string email)
         {
-            try
+            var user = await _userRepository.GetUserByEmailAsync(email);
+            if (user == null)
             {
-                var user = await _userRepository.GetUserByEmailAsync(email);
-                if (user == null)
-                {
-                    throw new Exception("Kullanıcı bulunamadı.");
-                }
-
-                return new UserDto
-                {
-                  
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email,
-                   
-                };
+                throw new Exception("Kullanıcı bulunamadı.");
             }
-            catch (Exception ex)
+
+            return _mapper.Map<UserDto>(user);
+        }
+
+        public async Task ActivateUserAsync(int userId)
+        {
+            await _userRepository.ActivateUserAsync(userId);
+        }
+
+        public async Task DeactivateUserAsync(int userId)
+        {
+            await _userRepository.DeactivateUserAsync(userId);
+        }
+
+        public async Task ApproveSellerRequestAsync(int userId)
+        {
+            await _userRepository.ApproveSellerRequestAsync(userId);
+        }
+
+        public async Task RegisterUserAsync(UserCreateDto userCreateDto)
+        {
+            var user = _mapper.Map<User>(userCreateDto);
+            user.RoleId = 2;
+            user.PasswordHash = HashPassword(userCreateDto.Password);
+            user.CreatedAt = DateTime.Now;
+
+            var result = await _userRepository.CreateUserAsync(user);
+            if (!result)
             {
-                throw new Exception("Kullanıcı getirilirken bir hata oluştu: " + ex.Message);
+                throw new Exception("Kullanıcı kaydı sırasında bir hata oluştu.");
             }
         }
 
-        public async Task ActivateUserAsync(string userId)
+        public async Task<UserLoginResponseDto> AuthenticateUserAsync(UserLoginDto login)
         {
-            try
+            var user = await _userRepository.GetUserByEmailAsync(login.Email);
+            if (user == null || !VerifyPassword(login.Password, user.PasswordHash))
             {
-                await _userRepository.ActivateUserAsync(userId);
+                throw new Exception("Kullanıcı adı veya şifre yanlış.");
             }
-            catch (Exception ex)
+
+            // Eğer GenerateUserToken metodunuz User kabul ediyorsa:
+            var token = _jwtService.GenerateUserToken(user);
+
+            return new UserLoginResponseDto
             {
-                throw new Exception("Kullanıcı aktif edilirken bir hata oluştu: " + ex.Message);
-            }
+                User = _mapper.Map<UserDto>(user),
+                Token = token
+            };
         }
 
-        public async Task DeactivateUserAsync(string userId)
+
+        public async Task UpdateUserByEmailAsync(string email, UserUpdateDto updatedUser)
         {
-            try
+            var user = await _userRepository.GetUserByEmailAsync(email);
+            if (user == null)
             {
-                await _userRepository.DeactivateUserAsync(userId);
+                throw new Exception("Kullanıcı bulunamadı.");
             }
-            catch (Exception ex)
-            {
-                throw new Exception("Kullanıcı pasif edilirken bir hata oluştu: " + ex.Message);
-            }
+
+            _mapper.Map(updatedUser, user);
+
+            await _userRepository.UpdateAsync(user);
         }
 
-        public async Task ApproveSellerRequestAsync(string userId)
+        public async Task ChangeUserRoleAsync(int userId, int newRoleId)
         {
-            try
-            {
-                await _userRepository.ApproveSellerRequestAsync(userId);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Satıcı olma isteği onaylanırken bir hata oluştu: " + ex.Message);
-            }
+            await _userRepository.ChangeUserRoleAsync(userId, newRoleId);
         }
 
-        public async Task RegisterUserAsync(UserDto userDto, string password)
+        private string HashPassword(string password)
         {
-            try
+            byte[] salt = new byte[128 / 8];
+            using (var rng = RandomNumberGenerator.Create())
             {
-                var user = new User
-                {
-                    UserName = userDto.Email,
-                    Email = userDto.Email,
-                    FirstName = userDto.FirstName,
-                    LastName = userDto.LastName,
-                    CreatedAt = DateTime.Now,
-                };
+                rng.GetBytes(salt);
+            }
 
-                var result = await _userManager.CreateAsync(user, password);
-                if (!result.Succeeded)
-                {
-                    throw new Exception("Kullanıcı kaydedilirken bir hata oluştu: " + string.Join(", ", result.Errors.Select(e => e.Description)));
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Kullanıcı kaydedilirken bir hata oluştu: " + ex.Message);
-            }
+            string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: password,
+                salt: salt,
+                prf: KeyDerivationPrf.HMACSHA256,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 8));
+
+            return $"{Convert.ToBase64String(salt)}:{hashed}";
         }
 
-        public async Task<UserDto> AuthenticateUserAsync(string email, string password)
+        private bool VerifyPassword(string password, string storedHash)
         {
-            try
+            var parts = storedHash.Split(':');
+            if (parts.Length != 2)
             {
-                var user = await _userManager.FindByEmailAsync(email);
-                if (user == null || !await _userManager.CheckPasswordAsync(user, password)) // TODO: Seed aşamasında hangi şifrenin hash'lenmiş halini kaydettiğimizi bilmediğimizden burası SIKINTILI!
-                {
-                    throw new Exception("Kullanıcı adı veya şifre yanlış.");
-                }
+                return false;
+            }
 
-                return new UserDto
-                {
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email,
-                  
-                };
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Kullanıcı kimlik doğrulaması yapılırken bir hata oluştu: " + ex.Message);
-            }
-        }
+            var salt = Convert.FromBase64String(parts[0]);
+            var hash = Convert.FromBase64String(parts[1]);
 
-        public async Task UpdateUserByEmailAsync(string email, UserDto updatedUser)
-        {
-            try
-            {
-                var user = await _userManager.FindByEmailAsync(email);
-                if (user == null)
-                {
-                    throw new Exception("Kullanıcı bulunamadı.");
-                }
+            var testHash = KeyDerivation.Pbkdf2(
+                password: password,
+                salt: salt,
+                prf: KeyDerivationPrf.HMACSHA256,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 8);
 
-                user.FirstName = updatedUser.FirstName;
-                user.LastName = updatedUser.LastName;
-
-                var result = await _userManager.UpdateAsync(user);
-                if (!result.Succeeded)
-                {
-                    throw new Exception("Kullanıcı güncellenirken bir hata oluştu: " + string.Join(", ", result.Errors.Select(e => e.Description)));
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Kullanıcı güncellenirken bir hata oluştu: " + ex.Message);
-            }
-        }
-
-        public async Task ChangeUserRoleAsync(string userId, string newRoleId)
-        {
-            try
-            {
-                await _userRepository.ChangeUserRoleAsync(userId, newRoleId);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Kullanıcı rolü değiştirilirken bir hata oluştu: " + ex.Message);
-            }
+            return hash.SequenceEqual(testHash);
         }
     }
 }

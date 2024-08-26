@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CaseStudyBusiness.Concreate
 {
-    public class OrderRepository : Repository<Order>, IOrderRepository
+    public class OrderRepository : GenericRepository<Order>, IOrderRepository
     {
         private readonly CaseStudyDbContext _context;
 
@@ -18,7 +18,7 @@ namespace CaseStudyBusiness.Concreate
             _context = context;
         }
 
-        public async Task<IEnumerable<Order>> GetOrdersByUserIdAsync(string userId)
+        public async Task<IEnumerable<Order>> GetOrdersByUserIdAsync(int userId)
         {
             return await _context.Orders
                 .Where(o => o.UserId == userId)
@@ -44,5 +44,4 @@ namespace CaseStudyBusiness.Concreate
             }
         }
     }
-
 }

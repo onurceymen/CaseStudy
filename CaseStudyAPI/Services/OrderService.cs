@@ -2,10 +2,6 @@
 using CaseStudyBusiness.Abstract;
 using CaseStudyBusiness.Dtos;
 using CaseStudyEntity.Entity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CaseStudyAPI.Services
 {
@@ -18,16 +14,22 @@ namespace CaseStudyAPI.Services
             _orderRepository = orderRepository;
         }
 
-        public async Task CreateOrderAsync(OrderDto orderDto)
+        public async Task CreateOrderAsync(OrderCreateDto orderDto, int userId)
         {
             try
             {
                 var order = new Order
                 {
-                    UserId = orderDto.UserId,
-                    OrderCode = orderDto.OrderCode,
+                    UserId = userId,
+                    OrderCode = Guid.NewGuid().ToString(), // Benzersiz bir sipariş kodu oluşturma
                     Address = orderDto.Address,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    OrderItems = orderDto.OrderItems.Select(oi => new OrderItem
+                    {
+                        ProductId = oi.ProductId,
+                        Quantity = oi.Quantity,
+                        UnitPrice = 0 // Fiyat bilgisinin daha sonra alınacağını varsayıyoruz
+                    }).ToList()
                 };
 
                 await _orderRepository.AddAsync(order);
@@ -38,7 +40,7 @@ namespace CaseStudyAPI.Services
             }
         }
 
-        public async Task<IEnumerable<OrderDto>> GetOrdersByUserIdAsync(string userId)
+        public async Task<IEnumerable<OrderDto>> GetOrdersByUserIdAsync(int userId)
         {
             try
             {
@@ -58,7 +60,7 @@ namespace CaseStudyAPI.Services
             }
         }
 
-        public async Task<OrderDto> GetOrderDetailsAsync(int orderId)
+        public async Task<OrderDetailsDto> GetOrderDetailsAsync(int orderId)
         {
             try
             {
@@ -68,13 +70,21 @@ namespace CaseStudyAPI.Services
                     throw new Exception("Sipariş bulunamadı.");
                 }
 
-                return new OrderDto
+                return new OrderDetailsDto
                 {
                     Id = order.Id,
                     UserId = order.UserId,
                     OrderCode = order.OrderCode,
                     Address = order.Address,
-                    CreatedAt = order.CreatedAt
+                    CreatedAt = order.CreatedAt,
+                    OrderItems = order.OrderItems.Select(oi => new OrderItemDto
+                    {
+                        Id = oi.Id,
+                        ProductId = oi.ProductId,
+                        ProductName = oi.Product.Name,
+                        Quantity = oi.Quantity,
+                        UnitPrice = oi.UnitPrice
+                    }).ToList()
                 };
             }
             catch (Exception ex)

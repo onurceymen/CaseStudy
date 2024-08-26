@@ -2,26 +2,22 @@
 using CaseStudyData.Context;
 using CaseStudyData.Repository;
 using CaseStudyEntity.Entity;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
-namespace CaseStudyBusiness.Concreate
+namespace CaseStudyBusiness.Concrete
 {
-    public class UserRepository : Repository<User>, IUserRepository
+    public class UserRepository : GenericRepository<User>, IUserRepository
     {
         private readonly CaseStudyDbContext _context;
-        private readonly UserManager<User> _userManager;
 
-        public UserRepository(CaseStudyDbContext context, UserManager<User> userManager) : base(context)
+        public UserRepository(CaseStudyDbContext context) : base(context)
         {
             _context = context;
-            _userManager = userManager;
         }
 
-        public async Task ActivateUserAsync(string userId)
+        public async Task ActivateUserAsync(int userId)
         {
             var user = await _context.Users.FindAsync(userId);
             if (user != null)
@@ -31,7 +27,7 @@ namespace CaseStudyBusiness.Concreate
             }
         }
 
-        public async Task DeactivateUserAsync(string userId)
+        public async Task DeactivateUserAsync(int userId)
         {
             var user = await _context.Users.FindAsync(userId);
             if (user != null)
@@ -41,13 +37,13 @@ namespace CaseStudyBusiness.Concreate
             }
         }
 
-        public async Task ApproveSellerRequestAsync(string userId)
+        public async Task ApproveSellerRequestAsync(int userId)
         {
             var user = await _context.Users.FindAsync(userId);
             if (user != null)
             {
-                // Example: setting role ID for seller
-                user.RoleId = 2; // assuming 2 is the ID for the seller role
+                // Örnek: seller rolü için role ID ayarlanması
+                user.RoleId = 2; // 2'nin seller rolü olduğunu varsayıyoruz
                 await _context.SaveChangesAsync();
             }
         }
@@ -62,15 +58,26 @@ namespace CaseStudyBusiness.Concreate
             return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
 
-        public async Task ChangeUserRoleAsync(string userId, string newRoleId)
+        public async Task ChangeUserRoleAsync(int userId, int newRoleId)
         {
             var user = await _context.Users.FindAsync(userId);
             if (user != null)
             {
-                user.RoleId = int.Parse(newRoleId);
+                user.RoleId = newRoleId;
                 await _context.SaveChangesAsync();
             }
         }
-    }
 
+        public async Task UpdateAsync(User user)
+        {
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> CreateUserAsync(User user)
+        {
+            await _context.Set<User>().AddAsync(user);
+            return await _context.SaveChangesAsync() > 0;
+        }
+    }
 }

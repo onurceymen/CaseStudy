@@ -1,5 +1,4 @@
-﻿using CaseStudyBusiness.Abstract;
-using CaseStudyBusiness.Dtos;
+﻿using CaseStudyBusiness.Dtos;
 
 namespace CaseStudyAPI.ServicesAbstract
 {

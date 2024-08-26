@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace CaseStudyEntity.Entity
+﻿namespace CaseStudyEntity.Entity
 {
     public class Product
     {
         public int Id { get; set; }
-        public string SellerId { get; set; }
+        public int SellerId { get; set; }
         public User Seller { get; set; }
         public int CategoryId { get; set; }
         public Category Category { get; set; }

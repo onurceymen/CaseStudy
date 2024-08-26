@@ -1,13 +1,13 @@
 ﻿using CaseStudyAPI.ServicesAbstract;
 using CaseStudyBusiness.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CaseStudyAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CartController : ControllerBase
     {
         private readonly ICartService _cartService;
@@ -18,7 +18,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("{userId}")]
-        public async Task<IActionResult> GetCartItemsByUserId(string userId)
+        public async Task<IActionResult> GetCartItemsByUserId(int userId)
         {
             try
             {
@@ -78,7 +78,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("{userId}/{productId}")]
-        public async Task<IActionResult> GetCartItemByUserAndProductId(string userId, int productId)
+        public async Task<IActionResult> GetCartItemByUserAndProductId(int userId, int productId)
         {
             try
             {

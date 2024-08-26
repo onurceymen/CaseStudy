@@ -1,13 +1,15 @@
 ﻿using CaseStudyAPI.ServicesAbstract;
 using CaseStudyBusiness.Dtos;
+using CaseStudyData.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace CaseStudyAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CategoryController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
@@ -17,8 +19,19 @@ namespace CaseStudyAPI.Controllers
             _categoryService = categoryService;
         }
 
+        private int GetUserIdFromToken()
+        {
+            return int.Parse(User.FindFirst("UserId")?.Value);
+        }
+
+        private string GetUserRoleFromToken()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value;
+        }
+
         [HttpPost]
-        public async Task<IActionResult> AddCategory(CategoryDto categoryDto)
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<IActionResult> AddCategory([FromBody] CategoryDto categoryDto)
         {
             try
             {
@@ -32,6 +45,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("{categoryId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetProductsByCategoryId(int categoryId)
         {
             try
@@ -46,6 +60,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpGet("subcategories/{categoryId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetSubCategories(int categoryId)
         {
             try
@@ -60,7 +75,8 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpPost("subcategories")]
-        public async Task<IActionResult> AddSubCategory(CategoryDto subCategoryDto)
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<IActionResult> AddSubCategory([FromBody] CategoryDto subCategoryDto)
         {
             try
             {

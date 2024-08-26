@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CaseStudyBusiness.Concreate
 {
-    public class CartItemRepository : Repository<CartItem>, ICartItemRepository
+    public class CartItemRepository : GenericRepository<CartItem>, ICartItemRepository
     {
         private readonly CaseStudyDbContext _context;
 
@@ -18,7 +18,7 @@ namespace CaseStudyBusiness.Concreate
             _context = context;
         }
 
-        public async Task<IEnumerable<CartItem>> GetCartItemsByUserIdAsync(string userId)
+        public async Task<IEnumerable<CartItem>> GetCartItemsByUserIdAsync(int userId)
         {
             return await _context.CartItems
                 .Where(ci => ci.UserId == userId)
@@ -26,7 +26,7 @@ namespace CaseStudyBusiness.Concreate
                 .ToListAsync();
         }
 
-        public async Task<CartItem> GetCartItemByUserAndProductIdAsync(string userId, int productId)
+        public async Task<CartItem> GetCartItemByUserAndProductIdAsync(int userId, int productId)
         {
             return await _context.CartItems
                 .SingleOrDefaultAsync(ci => ci.UserId == userId && ci.ProductId == productId);

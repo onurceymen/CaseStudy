@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace CaseStudyBusiness.Concreate
 {
-    public class CategoryRepository : Repository<Category>, ICategoryRepository
+    public class CategoryRepository : GenericRepository<Category>, ICategoryRepository
     {
         private readonly CaseStudyDbContext _context;
 

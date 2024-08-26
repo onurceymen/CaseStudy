@@ -1,8 +1,8 @@
-﻿using CaseStudyAPI.ServicesAbstract;
+﻿using CaseStudyAPI.Services;
+using CaseStudyAPI.ServicesAbstract;
 using CaseStudyBusiness.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CaseStudyAPI.Controllers
@@ -12,10 +12,40 @@ namespace CaseStudyAPI.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly JwtService _jwtService;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, JwtService jwtService)
         {
             _userService = userService;
+            _jwtService = jwtService;
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] UserCreateDto userCreateDto)
+        {
+            try
+            {
+                await _userService.RegisterUserAsync(userCreateDto);
+                return Ok("Kullanıcı başarıyla kaydedildi.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Kullanıcı kaydedilirken bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        [HttpPost("authenticate")]
+        public async Task<IActionResult> Authenticate([FromBody] UserLoginDto userDto)
+        {
+            try
+            {
+                var serviceResult = await _userService.AuthenticateUserAsync(userDto);
+                return Ok(new { serviceResult.Token });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Kullanıcı kimlik doğrulaması yapılırken bir hata oluştu: {ex.Message}");
+            }
         }
 
         [HttpGet]
@@ -51,7 +81,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpPost("activate/{userId}")]
-        public async Task<IActionResult> ActivateUser(string userId)
+        public async Task<IActionResult> ActivateUser(int userId)
         {
             try
             {
@@ -65,7 +95,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpPost("deactivate/{userId}")]
-        public async Task<IActionResult> DeactivateUser(string userId)
+        public async Task<IActionResult> DeactivateUser(int userId)
         {
             try
             {
@@ -79,7 +109,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpPost("approve/{userId}")]
-        public async Task<IActionResult> ApproveSellerRequest(string userId)
+        public async Task<IActionResult> ApproveSellerRequest(int userId)
         {
             try
             {
@@ -92,45 +122,8 @@ namespace CaseStudyAPI.Controllers
             }
         }
 
-        [HttpPost("register")]
-        public async Task<IActionResult> RegisterUser([FromBody] UserDto userDto, [FromQuery] string password)
-        {
-            try
-            {
-                if (userDto == null || string.IsNullOrEmpty(password))
-                {
-                    return BadRequest("Geçersiz kullanıcı bilgileri veya şifre.");
-                }
-
-                await _userService.RegisterUserAsync(userDto, password);
-                return Ok("Kullanıcı başarıyla kaydedildi.");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Kullanıcı kaydedilirken bir hata oluştu: {ex.Message}");
-            }
-        }
-
-        [HttpPost("authenticate")]
-        public async Task<IActionResult> AuthenticateUser(string email, string password)
-        {
-            try
-            {
-                var user = await _userService.AuthenticateUserAsync(email, password);
-                if (user == null)
-                {
-                    return Unauthorized("Kullanıcı adı veya şifre yanlış.");
-                }
-                return Ok(user);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Kullanıcı kimlik doğrulaması yapılırken bir hata oluştu: {ex.Message}");
-            }
-        }
-
         [HttpPut("{email}")]
-        public async Task<IActionResult> UpdateUserByEmail(string email, [FromBody] UserDto updatedUser)
+        public async Task<IActionResult> UpdateUserByEmail(string email, [FromBody] UserUpdateDto updatedUser)
         {
             try
             {
@@ -144,7 +137,7 @@ namespace CaseStudyAPI.Controllers
         }
 
         [HttpPost("change-role/{userId}")]
-        public async Task<IActionResult> ChangeUserRole(string userId, [FromQuery] string newRoleId)
+        public async Task<IActionResult> ChangeUserRole(int userId, [FromQuery] int newRoleId)
         {
             try
             {

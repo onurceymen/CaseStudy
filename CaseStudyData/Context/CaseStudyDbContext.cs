@@ -1,13 +1,13 @@
 ﻿using CaseStudyEntity.Entity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CaseStudyData.Context
 {
-    public class CaseStudyDbContext : IdentityDbContext<User>
+    public class CaseStudyDbContext : DbContext
     {
         public CaseStudyDbContext(DbContextOptions<CaseStudyDbContext> options) : base(options) { }
 
+        public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }
@@ -25,68 +25,78 @@ namespace CaseStudyData.Context
             modelBuilder.Entity<CartItem>()
                 .HasOne(ci => ci.User)
                 .WithMany(u => u.CartItems)
-                .HasForeignKey(ci => ci.UserId);
+                .HasForeignKey(ci => ci.UserId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // CartItem - Product
             modelBuilder.Entity<CartItem>()
                 .HasOne(ci => ci.Product)
                 .WithMany(p => p.CartItems)
-                .HasForeignKey(ci => ci.ProductId);
+                .HasForeignKey(ci => ci.ProductId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // Category - Product
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.Category)
                 .WithMany(c => c.Products)
-                .HasForeignKey(p => p.CategoryId);
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // Category - SubCategory
             modelBuilder.Entity<Category>()
                 .HasMany(c => c.SubCategories)
                 .WithOne(c => c.ParentCategory)
                 .HasForeignKey(c => c.ParentCategoryId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // Order - User
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.User)
                 .WithMany(u => u.Orders)
-                .HasForeignKey(o => o.UserId);
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // Order - OrderItem
             modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Order)
                 .WithMany(o => o.OrderItems)
-                .HasForeignKey(oi => oi.OrderId);
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // OrderItem - Product
             modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Product)
                 .WithMany(p => p.OrderItems)
-                .HasForeignKey(oi => oi.ProductId);
+                .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // Product - User (Seller)
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.Seller)
                 .WithMany(u => u.Products)
-                .HasForeignKey(p => p.SellerId);
+                .HasForeignKey(p => p.SellerId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // ProductComment - Product
             modelBuilder.Entity<ProductComment>()
                 .HasOne(pc => pc.Product)
                 .WithMany(p => p.ProductComments)
-                .HasForeignKey(pc => pc.ProductId);
+                .HasForeignKey(pc => pc.ProductId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // ProductComment - User
             modelBuilder.Entity<ProductComment>()
                 .HasOne(pc => pc.User)
                 .WithMany(u => u.ProductComments)
-                .HasForeignKey(pc => pc.UserId);
+                .HasForeignKey(pc => pc.UserId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // ProductImage - Product
             modelBuilder.Entity<ProductImage>()
                 .HasOne(pi => pi.Product)
                 .WithMany(p => p.ProductImages)
-                .HasForeignKey(pi => pi.ProductId);
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // Decimal alanlar için hassasiyet ve ölçek belirtilmesi
             modelBuilder.Entity<Product>()

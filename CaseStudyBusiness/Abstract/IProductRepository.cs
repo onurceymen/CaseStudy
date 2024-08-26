@@ -1,12 +1,10 @@
 ﻿using CaseStudyEntity.Entity;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CaseStudyData.Repository
 {
-    public interface IProductRepository : IRepository<Product>
+    public interface IProductRepository : IGenericRepository<Product>
     {
-        Task<IEnumerable<Product>> GetProductsBySellerIdAsync(string sellerId);
+        Task<IEnumerable<Product>> GetProductsBySellerIdAsync(int sellerId);
         Task UpdateProductPriceAsync(int productId, decimal newPrice);
         Task UpdateProductStockAsync(int productId, byte newStockAmount);
         Task<Product> GetProductDetailsAsync(int productId);
